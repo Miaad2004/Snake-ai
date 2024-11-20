@@ -2,6 +2,7 @@ import pygame
 from Constants import *
 from GA import *
 import sys
+from GameController import GameController
 
 
 class Menu:
@@ -10,7 +11,7 @@ class Menu:
         self.mid_size = self.game.SIZE/2
         self.run_display = True
         self.cursor_rect = pygame.Rect(0, 0, 20, 20)
-        self.offset = -150
+        self.offset = -205
         self.title_size = 50
         self.option_size = 28
 
@@ -36,11 +37,19 @@ class MainMenu(Menu):
         self.cursorDFS = WHITE
         self.cursorASTAR = WHITE
         self.cursorGA = WHITE
+        self.cursorSinglePlayer = WHITE
+        self.cursorUCS = WHITE
+        self.cursorIDS = WHITE
+        self.cursorIDAStar = WHITE
 
-        self.BFSx, self.BFSy = self.mid_size, self.mid_size - 50
-        self.DFSx, self.DFSy = self.mid_size, self.mid_size + 0
-        self.ASTARx, self.ASTARy = self.mid_size, self.mid_size + 50
-        self.GAx, self.GAy = self.mid_size, self.mid_size + 100
+        self.BFSx, self.BFSy = self.mid_size, self.mid_size - 200
+        self.DFSx, self.DFSy = self.mid_size, self.mid_size - 150
+        self.ASTARx, self.ASTARy = self.mid_size, self.mid_size - 100
+        self.GAx, self.GAy = self.mid_size, self.mid_size - 50
+        self.UCSx, self.UCSy = self.mid_size, self.mid_size
+        self.IDSx, self.IDSy = self.mid_size, self.mid_size + 50
+        self.IDAStarx, self.IDAStary = self.mid_size, self.mid_size + 100
+        self.SinglePlayerx, self.SinglePlayery = self.mid_size, self.mid_size + 150
 
         self.cursor_rect.midtop = (self.BFSx + self.offset, self.BFSy)
 
@@ -54,12 +63,24 @@ class MainMenu(Menu):
             self.cursorASTAR = MENU_COLOR
         elif self.state == 'GA':
             self.cursorGA = MENU_COLOR
+        elif self.state == 'UCS':
+            self.cursorUCS = MENU_COLOR
+        elif self.state == 'IDS':
+            self.cursorIDS = MENU_COLOR
+        elif self.state == 'IDAStar':
+            self.cursorIDAStar = MENU_COLOR
+        elif self.state == 'SinglePlayer':
+            self.cursorSinglePlayer = MENU_COLOR
 
     def clear_cursor_color(self):
         self.cursorBFS = WHITE
         self.cursorDFS = WHITE
         self.cursorASTAR = WHITE
         self.cursorGA = WHITE
+        self.cursorUCS = WHITE
+        self.cursorIDS = WHITE
+        self.cursorIDAStar = WHITE
+        self.cursorSinglePlayer = WHITE
 
     def display_menu(self):
         self.run_display = True
@@ -72,89 +93,99 @@ class MainMenu(Menu):
 
             self.game.draw_text(
                 'Ai Snake Game', size=self.title_size,
-                x=self.game.SIZE/2, y=self.game.SIZE/2 - 2*(CELL_SIZE + NO_OF_CELLS),
+                x=self.game.SIZE/2, y=self.game.SIZE/2 - 5*(CELL_SIZE + NO_OF_CELLS),
                 color=TITLE_COLOR
             )
 
-            self.game.draw_text(
-                'BFS', size=self.option_size,
-                x=self.BFSx,  y=self.BFSy,
-                color=self.cursorBFS
-            )
-            self.game.draw_text(
-                'DFS', size=self.option_size,
-                x=self.DFSx,  y=self.DFSy,
-                color=self.cursorDFS
-            )
-
-            self.game.draw_text(
-                'AStar', size=self.option_size,
-                x=self.ASTARx,  y=self.ASTARy,
-                color=self.cursorASTAR
-            )
-
-            self.game.draw_text(
-                'Genetic Algorithm', size=self.option_size,
-                x=self.GAx,  y=self.GAy,
-                color=self.cursorGA
-            )
+            self.game.draw_text('BFS', self.option_size, self.BFSx, self.BFSy, self.cursorBFS)
+            self.game.draw_text('DFS', self.option_size, self.DFSx, self.DFSy, self.cursorDFS)
+            self.game.draw_text('AStar', self.option_size, self.ASTARx, self.ASTARy, self.cursorASTAR)
+            self.game.draw_text('Genetic Algorithm', self.option_size, self.GAx, self.GAy, self.cursorGA)
+            self.game.draw_text('Uniform Cost Search', self.option_size, self.UCSx, self.UCSy, self.cursorUCS)
+            self.game.draw_text('Iterative Deepening Search', self.option_size, self.IDSx, self.IDSy, self.cursorIDS)
+            self.game.draw_text('Iterative Deepening A*', self.option_size, self.IDAStarx, self.IDAStary, self.cursorIDAStar)
+            self.game.draw_text('Single Player', self.option_size, self.SinglePlayerx, self.SinglePlayery, self.cursorSinglePlayer)
 
             self.draw_cursor()
             self.change_cursor_color()
             self.blit_menu()
 
+    def move_cursor(self):
+        if self.game.DOWNKEY:
+            if self.state == 'BFS':
+                self.cursor_rect.midtop = (self.DFSx + self.offset, self.DFSy)
+                self.state = 'DFS'
+
+            elif self.state == 'DFS':
+                self.cursor_rect.midtop = (self.ASTARx + self.offset, self.ASTARy)
+                self.state = 'ASTAR'
+
+            elif self.state == 'ASTAR':
+                self.cursor_rect.midtop = (self.GAx + self.offset, self.GAy)
+                self.state = 'GA'
+
+            elif self.state == 'GA':
+                self.cursor_rect.midtop = (self.UCSx + self.offset, self.UCSy)
+                self.state = 'UCS'
+
+            elif self.state == 'UCS':
+                self.cursor_rect.midtop = (self.IDSx + self.offset, self.IDSy)
+                self.state = 'IDS'
+
+            elif self.state == 'IDS':
+                self.cursor_rect.midtop = (self.IDAStarx + self.offset, self.IDAStary)
+                self.state = 'IDAStar'
+
+            elif self.state == 'IDAStar':
+                self.cursor_rect.midtop = (self.SinglePlayerx + self.offset, self.SinglePlayery)
+                self.state = 'SinglePlayer'
+
+            elif self.state == 'SinglePlayer':
+                self.cursor_rect.midtop = (self.BFSx + self.offset, self.BFSy)
+                self.state = 'BFS'
+
+        if self.game.UPKEY:
+            if self.state == 'SinglePlayer':
+                self.cursor_rect.midtop = (self.IDAStarx + self.offset, self.IDAStary)
+                self.state = 'IDAStar'
+
+            elif self.state == 'IDAStar':
+                self.cursor_rect.midtop = (self.IDSx + self.offset, self.IDSy)
+                self.state = 'IDS'
+
+            elif self.state == 'IDS':
+                self.cursor_rect.midtop = (self.UCSx + self.offset, self.UCSy)
+                self.state = 'UCS'
+
+            elif self.state == 'UCS':
+                self.cursor_rect.midtop = (self.GAx + self.offset, self.GAy)
+                self.state = 'GA'
+
+            elif self.state == 'GA':
+                self.cursor_rect.midtop = (self.ASTARx + self.offset, self.ASTARy)
+                self.state = 'ASTAR'
+
+            elif self.state == 'ASTAR':
+                self.cursor_rect.midtop = (self.DFSx + self.offset, self.DFSy)
+                self.state = 'DFS'
+
+            elif self.state == 'DFS':
+                self.cursor_rect.midtop = (self.BFSx + self.offset, self.BFSy)
+                self.state = 'BFS'
+
     def check_input(self):
         self.move_cursor()
 
         if self.game.START:
-            if self.state == 'GA':  # go to genetic algorith options
-                self.game.curr_menu = self.game.GA
+            if self.state == 'GA':
+                self.game.curr_menu = GAMenu(self.game, self.game.controller)
+            elif self.state == 'SinglePlayer':
+                self.game.single_player = True
+                self.game.playing = True
             else:
+                self.game.curr_menu.state = self.state  # Set the selected algorithm
                 self.game.playing = True
             self.run_display = False
-
-    def move_cursor(self):
-        if self.game.DOWNKEY:
-            if self.state == 'BFS':
-                self.cursor_rect.midtop = (
-                    self.DFSx + self.offset, self.DFSy)
-                self.state = 'DFS'
-
-            elif self.state == 'DFS':
-                self.cursor_rect.midtop = (
-                    self.ASTARx + self.offset, self.ASTARy)
-                self.state = 'ASTAR'
-
-            elif self.state == 'ASTAR':
-                self.cursor_rect.midtop = (
-                    self.GAx + self.offset, self.GAy)
-                self.state = 'GA'
-
-            elif self.state == 'GA':
-                self.cursor_rect.midtop = (
-                    self.BFSx + self.offset, self.BFSy)
-                self.state = 'BFS'
-
-        if self.game.UPKEY:
-            if self.state == 'BFS':
-                self.cursor_rect.midtop = (
-                    self.GAx + self.offset, self.GAy)
-                self.state = 'GA'
-
-            elif self.state == 'DFS':
-                self.cursor_rect.midtop = (
-                    self.BFSx + self.offset, self.BFSy)
-                self.state = 'BFS'
-
-            elif self.state == 'ASTAR':
-                self.cursor_rect.midtop = (
-                    self.DFSx + self.offset, self.DFSy)
-                self.state = 'DFS'
-
-            elif self.state == 'GA':
-                self.cursor_rect.midtop = (
-                    self.ASTARx + self.offset, self.ASTARy)
-                self.state = 'ASTAR'
 
 
 class button():
@@ -373,7 +404,7 @@ class GAMenu(Menu):
         self.run_display = False
         self.game.curr_menu.state = 'GA'
         self.game.playing = True
-        self.game.load_model = True
+        self.game.load_model = True 
 
     def train_GA(self):
         self.game.curr_menu = self.game.main_menu
