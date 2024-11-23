@@ -17,7 +17,7 @@ This game also includes a single player mode
 
 <p float="left">
   <img src='images/mainMenu.png' width='400'/>
-  <img src='images/bfs.gif' width='400'/>
+  <img src='images/IDA-Star.gif' width='400'/>
   <img src='images/astar.gif' width='400'/>
   <img src='images/dfs.gif' width='400'/>
 </p>
