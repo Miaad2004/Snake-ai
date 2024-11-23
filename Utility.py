@@ -15,6 +15,13 @@ class Node:
 
     def equal(self, b):
         return self.x == b.x and self.y == b.y
+    
+    def __lt__(self, other):
+        return self.cost_from_start < other.cost_from_start
+    
+    def __hash__(self):
+        return hash((self.x, self.y))
+
 
 
 class Grid:
