@@ -85,3 +85,17 @@ class Snake:
             if self.body[0] == body:
                 return True
         return False
+    
+    def move(self, dx, dy):
+        self.life_time += 1
+        self.steps += 1
+        
+        # Move the body 
+        for i in range(len(self.body)-1, 0, -1):
+            self.body[i] = Vector2(self.body[i-1].x, self.body[i-1].y)
+            
+        # Update the head pos
+        self.body[0].x += dx
+        self.body[0].y += dy
+    
+    
