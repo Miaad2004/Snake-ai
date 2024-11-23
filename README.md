@@ -6,7 +6,7 @@ This game also includes a single player mode
 
 # Requirements
 
-you'll need to install:
+ To run this game you have to install:
 
 - pygame==2.0.1
 - numpy
