@@ -1,9 +1,11 @@
 import pygame
+import math
 from Constants import *
 from Menu import *
 from GameController import GameController
 from GA import *
 import sys
+import pickle
 
 
 class GameGUI:
@@ -13,15 +15,16 @@ class GameGUI:
         self.clock = pygame.time.Clock()
         self.SCREEN_UPDATE = pygame.USEREVENT
 
-        self.speed = 110
-        self.speed_up = 80
+        self.speed = 70
+        self.speed_up = 60
 
         pygame.time.set_timer(self.SCREEN_UPDATE, self.speed)
 
         self.controller = GameController()
 
         self.running, self.playing = True, False
-        self.UPKEY, self.DOWNKEY, self.START, self.BACK = False, False, False, False
+        self.UPKEY, self.DOWNKEY, self.LEFTKEY, self.RIGHTKEY = False, False, False, False
+        self.START, self.BACK = False, False
 
         self.SIZE = CELL_SIZE * NO_OF_CELLS
         self.display = pygame.Surface((self.SIZE, self.SIZE))
@@ -35,6 +38,17 @@ class GameGUI:
 
         self.load_model = False
         self.view_path = False
+        self.single_player = False
+
+        self.time = 0 
+
+        self.colors = [
+                      (33, 150, 243),  # Blue  
+                      (76, 175, 80),   # Green 
+                      (255, 235, 59),  # Yellow  
+                      (156, 39, 176),  # Purple 
+                      (255, 87, 34),   # Deep Orange  
+        ] 
 
     def game_loop(self):
         while self.playing:
@@ -42,9 +56,15 @@ class GameGUI:
 
             if self.BACK:
                 self.playing = False
+                self.single_player = False
 
-            self.display.fill(WINDOW_COLOR)
-            if self.controller.algo != None:
+            if self.single_player:
+                self.controller.update_single_player(self.UPKEY, self.DOWNKEY, self.LEFTKEY, self.RIGHTKEY)
+
+            self.time += self.clock.get_time() / 5000  
+            self.display.fill(self.get_background_color())  
+
+            if self.controller.algo is not None or self.single_player:
                 self.draw_elements()
             self.window.blit(self.display, (0, 0))
 
@@ -52,32 +72,53 @@ class GameGUI:
             self.clock.tick(60)
             self.reset_keys()
 
+    def get_background_color(self):
+        # Calculate the background color
+        index = int(self.time) % len(self.colors)
+        next_index = (index + 1) % len(self.colors)
+        blend = self.time - int(self.time)
+
+        r = int(self.colors[index][0] * (1 - blend) + self.colors[next_index][0] * blend)
+        g = int(self.colors[index][1] * (1 - blend) + self.colors[next_index][1] * blend)
+        b = int(self.colors[index][2] * (1 - blend) + self.colors[next_index][2] * blend)
+
+        return (r, g, b)
+
     def draw_elements(self):
         # draw banner and stats
         self.draw_banner()
         self.draw_game_stats()
 
-        if self.curr_menu.state != 'GA' or self.controller.model_loaded:  # Path Ai or trained GA
+        if self.single_player:
             fruit = self.controller.get_fruit_pos()
             snake = self.controller.snake
 
-            self.draw_fruit(fruit)
-            self.draw_snake(snake)
-            self.draw_score()
+            if snake:
+                self.draw_fruit(fruit)
+                self.draw_snake(snake)
+                self.draw_score()
+        elif self.curr_menu.state != 'GA' or self.controller.model_loaded:  # Path Ai or trained GA
+            fruit = self.controller.get_fruit_pos()
+            snake = self.controller.snake
 
-            if not self.controller.model_loaded:
-                self.draw_path()  # only path Ai has a path
+            if snake:
+                self.draw_fruit(fruit)
+                self.draw_snake(snake)
+                self.draw_score()
+
+                if not self.controller.model_loaded:
+                    self.draw_path()  # only path Ai has a path
 
         else:  # training a GA model
             self.draw_all_snakes_GA()
-
+            
     def draw_game_stats(self):
-        if self.curr_menu.state != 'GA':  # path Ai algo
-            instruction = 'Space to view Ai path, W to speed up, Q to go back'
-
+        if self.single_player:
+            instruction = 'Use arrow keys to move, Q to go back, S to save, L to load'
+        elif self.curr_menu.state != 'GA':  # path Ai algo
+            instruction = 'Space to view Ai path, W to speed up, Q to go back, S to save, L to load'
         elif self.controller.model_loaded:  # trained model
             instruction = 'W to speed up, Q to go back'
-
         else:  # training model GA algo
             instruction = 'Space to hide all snakes, W to speed up, Q to go back'
             curr_gen = str(self.controller.curr_gen())
@@ -102,6 +143,7 @@ class GameGUI:
                 color=SNAKE_COLOR
             )
 
+
         # instruction
         self.draw_text(
             instruction, size=20,
@@ -110,8 +152,12 @@ class GameGUI:
         )
 
         # current Algo Title
+        if self.single_player:
+            title = 'Single Player Mode'
+        else:
+            title = self.curr_menu.state
         self.draw_text(
-            self.curr_menu.state, size=30,
+            title, size=30,
             x=self.SIZE/2, y=CELL_SIZE,
         )
 
@@ -125,7 +171,7 @@ class GameGUI:
                 self.draw_fruit(snake.get_fruit())
 
     def draw_path(self):
-        if self.controller.algo != None and self.view_path:
+        if self.controller.algo is not None and self.view_path:
             for path in self.controller.algo.path:  # for each {x,y} in path
                 x = int(path.x * CELL_SIZE)
                 y = int(path.y * CELL_SIZE)
@@ -232,6 +278,7 @@ class GameGUI:
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
         self.controller.reset()
+        self.single_player = False
 
     def is_quit(self, event):
         # user presses exit icon
@@ -240,7 +287,7 @@ class GameGUI:
             self.curr_menu.run_display = False
             return True
         return False
-
+    
     def event_handler(self):
         for event in pygame.event.get():
             if self.is_quit(event):
@@ -248,16 +295,19 @@ class GameGUI:
                 pygame.quit()
                 sys.exit()
 
-            # user event that runs every self.speed milisec
+            # user event that runs every self.speed milliseconds
             elif self.playing and event.type == pygame.USEREVENT:
 
                 if self.load_model:  # user load model
                     self.controller.load_model()
                     self.load_model = False
 
-                self.controller.ai_play(self.curr_menu.state)  # play
+                if self.single_player:
+                    self.controller.update_single_player(self.UPKEY, self.DOWNKEY, self.LEFTKEY, self.RIGHTKEY)
+                else:
+                    self.controller.ai_play(self.curr_menu.state)  # play
 
-                if self.controller.end == True:  # Only path ai and trained model
+                if self.controller.end:
                     self.playing = False
                     self.game_over()  # show game over stats
 
@@ -278,14 +328,76 @@ class GameGUI:
                     self.DOWNKEY = True
                 elif event.key == pygame.K_UP:
                     self.UPKEY = True
+                elif event.key == pygame.K_LEFT:
+                    self.LEFTKEY = True
+                elif event.key == pygame.K_RIGHT:
+                    self.RIGHTKEY = True
 
                 elif event.key == pygame.K_w:  # speed up/down by self.speed_up
                     self.speed_up = -1 * self.speed_up
                     self.speed = self.speed + self.speed_up
                     pygame.time.set_timer(self.SCREEN_UPDATE, self.speed)
 
+                # Updated key handling for saving and loading game state
+                elif event.key == pygame.K_s:  # Save game
+                    if self.curr_menu.state != 'GA':
+                        self.save_game_state()
+                        print(f"Game state saved successfully.")
+
+                elif event.key == pygame.K_l:  # Load game
+                    if self.curr_menu.state != 'GA':
+                        data = self.load_game_state()
+                        
+                        if self.curr_menu.state == data['curr_state']:
+                            if data:
+                                self.playing = True
+                                self.view_path = data['view_path']
+                                self.single_player = data['single_player']
+                                self.curr_menu.state = data['curr_state']
+                                self.controller.snake = data['snake']
+                                self.controller.snakes = data['snakes']
+                                self.controller.score = data['score']
+                                self.controller.end = data['end']
+                                self.controller.grid = data['grid']
+                                self.controller.algo = data['algo']
+                                self.controller.model_loaded = data['model_loaded']
+                                print("Game state loaded successfully.")
+                                
+                            else:
+                                print("Failed to load game state.")
+                        
+                        else:
+                            print("Cannot load game state. Game state does not match current game mode.")
+                            
+    def save_game_state(self, filename='savegame.pkl'):
+        with open(filename, 'wb') as f:
+            pickle.dump({
+                'snake': self.controller.snake,
+                'snakes': self.controller.snakes,
+                'score': self.controller.score,
+                'end': self.controller.end,
+                'grid': self.controller.grid,
+                'algo': self.controller.algo,
+                'model_loaded': self.controller.model_loaded,
+                'single_player': self.single_player,
+                'view_path': self.view_path,
+                'curr_state': self.curr_menu.state
+            }, f)
+
+    @staticmethod
+    def load_game_state(filename='savegame.pkl'):
+        try:
+            with open(filename, 'rb') as f:
+                data = pickle.load(f)
+                return data
+            
+        except Exception as e:
+            print(f"Error loading game state: {e}")
+            return None
+
     def reset_keys(self):
-        self.UPKEY, self.DOWNKEY, self.START, self.BACK = False, False, False, False
+        self.UPKEY, self.DOWNKEY, self.LEFTKEY, self.RIGHTKEY = False, False, False, False
+        self.START, self.BACK = False, False
 
     def draw_text(self, text, size, x, y, color=WINDOW_COLOR):
         font = pygame.font.Font(self.font_name, size)

@@ -5,10 +5,12 @@ from DFS import DFS
 from BFS import BFS
 from A_STAR import A_STAR
 from GA import *
-
+import pickle
+from UCS import UCS
+from IDS import IDS  
+from IDA_Star import IDAStar  
 
 class GameController:
-
     def __init__(self):
         self.snake = None
         self.snakes = []
@@ -67,7 +69,7 @@ class GameController:
                 if position == body:
                     inside_body = True
 
-            if inside_body == False:
+            if not inside_body:
                 break
 
     def ate_fruit_GA(self, snake):
@@ -84,7 +86,7 @@ class GameController:
                 if position == body:
                     inside_body = True
 
-            if inside_body == False:
+            if not inside_body:
                 break
 
     def died(self):
@@ -102,24 +104,36 @@ class GameController:
         return self.snake.get_fruit()
 
     def set_algorithm(self, algo_type):
-        if self.algo != None:
+        if self.algo is not None and self.algo_type == algo_type:
             return
-
+        self.algo_type = algo_type  
+    
         if algo_type == 'BFS':
             self.algo = BFS(self.grid)
             self.snake = Snake()
-
+    
         elif algo_type == 'DFS':
             self.algo = DFS(self.grid)
             self.snake = Snake()
-
+    
         elif algo_type == 'ASTAR':
             self.algo = A_STAR(self.grid)
             self.snake = Snake()
-
+    
+        elif algo_type == 'UCS':
+            self.algo = UCS(self.grid)
+            self.snake = Snake()
+    
+        elif algo_type == 'IDS':
+            self.algo = IDS(self.grid)
+            self.snake = Snake()
+    
+        elif algo_type == 'IDAStar':
+            self.algo = IDAStar(self.grid)
+            self.snake = Snake()
+    
         elif algo_type == 'GA':
             self.algo = GA(self.grid)
-
             if not self.model_loaded:
                 self.algo.population._initialpopulation_()
                 self.snakes = self.algo.population.snakes
@@ -127,7 +141,7 @@ class GameController:
     def ai_play(self, algorithm):
         self.set_algorithm(algorithm)
 
-        if self.algo == None:
+        if self.algo is None:
             return
 
         if isinstance(self.algo, GA):
@@ -177,12 +191,29 @@ class GameController:
             self.ate_fruit()
 
     def update_path_finding_algo(self, pos):
-        if pos == None:
+        if pos is None:
             x, y = self.keep_moving()
         else:
             x = pos.x
             y = pos.y
 
         self.snake.move_ai(x, y)
+        self.died()
+        self.ate_fruit()
+
+    def update_single_player(self, up, down, left, right):
+        if self.snake is None:
+            self.snake = Snake()
+            self.change_fruit_location()
+
+        if up:
+            self.snake.move(0, -1)
+        elif down:
+            self.snake.move(0, 1)
+        elif left:
+            self.snake.move(-1, 0)
+        elif right:
+            self.snake.move(1, 0)
+
         self.died()
         self.ate_fruit()
