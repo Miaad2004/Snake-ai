@@ -13,11 +13,20 @@ This game also includes a single player mode
 
 > To start the game run Main.py
 
-## GIFs
+# GIFs
 
+## Added Algorithms
+<p float="left">
+  <img src='images/IDS.gif' width='400'/>
+  <img src='images/IDA-Star.gif' width='400'/>
+  <img src='images/UCS.gif' width='400'/>
+  <img src='images/single_player.gif' width='400'/>
+</p>
+
+## Original Algorithms
 <p float="left">
   <img src='images/mainMenu.png' width='400'/>
-  <img src='images/IDA-Star.gif' width='400'/>
+  <img src='images/bfs.gif' width='400'/>
   <img src='images/astar.gif' width='400'/>
   <img src='images/dfs.gif' width='400'/>
 </p>
